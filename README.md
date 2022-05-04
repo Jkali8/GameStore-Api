@@ -1,9 +1,5 @@
 # API for Movie Database
-Simple Web Service CRUD application movie database 
-
-## Requirements:
-* docker
-* git
+Simple Game Store web service
 
 ## To launch:
 ```bash
@@ -36,25 +32,25 @@ Test the API with [Postman](https://www.postman.com/).
 `http://172.20.10.2:80/api/v2/games`
 
 ### GET
-#### Get a movie by id:
+#### Get a game by id:
 
 `http://172.20.10.2:80/api/v2/games/<game_id>`
 
-#### Get all movies:
+#### Get all games:
 
 `http://172.20.10.2:80/api/v2/games`
 
 ### PUT
-#### Update movie by id(can leave blank spaces):
+#### Update game by id(can leave blank spaces):
 
 `http://172.20.10.2:80/api/v2/games/<game_id>`
 
 ### PATCH
-#### Modify movie fields by id:
+#### Modify game fields by id:
 
 `http://172.20.10.2:80/api/v2/games/<game_id>`
 
 ### DELETE 
-#### Delete movie by id:
+#### Delete game by id:
 
 `http://172.20.10.2:80/api/v2/games/<game_id>`
