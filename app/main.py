@@ -9,12 +9,14 @@ from bson.objectid import ObjectId
 
 
 app = Flask(__name__)
+
 try:
-    client = pymongo.MongoClient(host = 'localhost',
-                                  port =  27017,
-                                  serverSelectionTimeoutMS = 1000)
+    client = pymongo.MongoClient("mongodb://my_mongo_db:27017")
+    g_database_name = "storeDB"
+    g_collection_name = "movie_collection"
     client.drop_database('storeDB')
-    db = client.storeDB
+    db = client[g_database_name]
+    games = db["games"]
     client.server_info()
 except:
     print("Unable to connect to database")
@@ -23,9 +25,6 @@ db.games.insert_one({"title": "Mario","releaseYear": 1994, "genre": "platformer"
 db.games.insert_one({"title": "CIV5","releaseYear": 2015, "genre": "strategy", "price": 55, "length": "not specified"})
 db.games.insert_one({"title": "Stellaris","releaseYear": 2016, "genre": "strategy", "price": 99, "length": "not specified"})
 
-
-def parse_json(data):
-    return json.loads(json_util.dumps(data))
 
 
 @app.route("/api/v2/games", methods=['POST'])

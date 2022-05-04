@@ -1,21 +1,11 @@
 version: "3.9"
 
-volumes:
-  db-data:
-
-services: 
-  # mongo
-  mongo:
-    image: mongo
-    ports:
-      - 27017:27017
-
-  # application
-  web: 
-    build:
-      context: ./app
-      dockerfile: Dockerfile
+services:
+  app:
+    build: "./app"
     ports:
       - "80:80"
-    environment:
-      DB_URL: 'mongo:27017'
+    links:
+      - my_mongo_db
+  my_mongo_db:
+    build: "./db"
