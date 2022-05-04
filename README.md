@@ -1,4 +1,4 @@
-# API for Movie Database
+# API for Game Database
 Simple Game Store web service
 
 ## To launch:
