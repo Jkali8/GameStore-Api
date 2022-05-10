@@ -1,19 +1,26 @@
 version: "3.9"
 
+volumes:
+  db-data:
+
 services:
   app:
-    build: "./app"
+    build: 
+        context: ./app
+        dockerfile: Dockerfile
     ports:
       - "80:80"
     links:
       - my_mongo_db
     networks:
-    - "custom_network"
+      - "custom_network"
     
   my_mongo_db:
     build: "./db"
+    ports:
+      - 27017:27017
     networks:
-        - "custom_network"
+      - "custom_network"
   
   contacts:
     build:

@@ -8,7 +8,7 @@ from jsonschema import validate
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
-api_url = "http://localhost:5000/contacts/"
+api_url = "http://172.17.0.1:5000/contacts/"
 
 
 def get_api_url():
@@ -18,15 +18,16 @@ def get_api_url():
 app = Flask(__name__)
 
 try:
-    client = MongoClient("mongodb://localhost:27017")
+    client = MongoClient("mongodb://my_mongo_db:27017")
     g_database_name = "storeDB"
     g_collection_name = "game_collection"
     client.drop_database('storeDB')
     db = client.storeDB
     games = db["games"]
     client.server_info()
-except:
-    print("Unable to connect to database")
+except Exception as ex:
+    print(ex)
+    print("Unable to connect to database XD")
 
 db.games.insert_one({"title": "Mario","releaseYear": 1994, "genre": "platformer", "price": 10, "length": 60, "buyer_id":"12345"})
 db.games.insert_one({"title": "CIV5","releaseYear": 2015, "genre": "strategy", "price": 55, "length": "not specified", "buyer_id":""})
@@ -261,7 +262,7 @@ def add_game_buyer(id):
     game = db.games.find_one({'_id': ObjectId(id)})
     buyer_id = request.form["buyer_id"]
     print(buyer_id)
-
+    print("--------------------------------------------------------------------------")
     print("game: ", game)
     try:
         if game is None:
@@ -288,13 +289,13 @@ def add_game_buyer(id):
                             json.dumps({"Success": "Game buyer added successfully"}),
                             status=200,
                             mimetype="application/json",
-                      headers={"Location": '/games/{}'.format(id) + "/buyer"}
+                            headers={"Location": '/games/{}'.format(id) + "/buyer"}
                             )
             else:
                 return Response(
                             json.dumps({"Error" : "Could not find a buyer with this id"}),
                             status=404,
-                            mimetype="application/json",
+                            mimetype="application/json"
                             )
     except Exception as ex:
         print(ex)
