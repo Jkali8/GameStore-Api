@@ -7,5 +7,24 @@ services:
       - "80:80"
     links:
       - my_mongo_db
+    networks:
+    - "custom_network"
+    
   my_mongo_db:
     build: "./db"
+    networks:
+        - "custom_network"
+  
+  contacts:
+    build:
+        context: ./contacts
+        dockerfile: Dockerfile
+    ports:
+     - "5000:5000"
+    networks:
+     - "custom_network"
+     
+networks:
+  custom_network:
+    driver: bridge
+   

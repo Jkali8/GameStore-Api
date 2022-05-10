@@ -3,27 +3,34 @@ from bson import json_util
 from flask import Flask, request, jsonify, json
 from flask import Response
 import json
+import requests
 from jsonschema import validate
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+
+api_url = "http://localhost:5000/contacts/"
+
+
+def get_api_url():
+    return api_url
 
 
 app = Flask(__name__)
 
 try:
-    client = pymongo.MongoClient("mongodb://my_mongo_db:27017")
+    client = MongoClient("mongodb://localhost:27017")
     g_database_name = "storeDB"
-    g_collection_name = "movie_collection"
+    g_collection_name = "game_collection"
     client.drop_database('storeDB')
-    db = client[g_database_name]
+    db = client.storeDB
     games = db["games"]
     client.server_info()
 except:
     print("Unable to connect to database")
 
-db.games.insert_one({"title": "Mario","releaseYear": 1994, "genre": "platformer", "price": 10, "length": 60})
-db.games.insert_one({"title": "CIV5","releaseYear": 2015, "genre": "strategy", "price": 55, "length": "not specified"})
-db.games.insert_one({"title": "Stellaris","releaseYear": 2016, "genre": "strategy", "price": 99, "length": "not specified"})
+db.games.insert_one({"title": "Mario","releaseYear": 1994, "genre": "platformer", "price": 10, "length": 60, "buyer_id":"12345"})
+db.games.insert_one({"title": "CIV5","releaseYear": 2015, "genre": "strategy", "price": 55, "length": "not specified", "buyer_id":""})
+db.games.insert_one({"title": "Stellaris","releaseYear": 2016, "genre": "strategy", "price": 99, "length": "not specified", "buyer_id":""})
 
 
 
@@ -34,7 +41,8 @@ def add_game():
                 "releaseYear": request.form["releaseYear"],
                 "genre": request.form["genre"],
                 "price": request.form["price"],
-                "length": request.form["length"]
+                "length": request.form["length"],
+                "buyer_id": ""
                 }
         dbResponse = db.games.insert_one(game)
         print(dbResponse.inserted_id)
@@ -109,7 +117,8 @@ def update_game(id):
                                             "releaseYear": request.form["releaseYear"],
                                             "genre": request.form["genre"],
                                             "price": request.form["price"],
-                                            "length": request.form["length"]}})
+                                            "length": request.form["length"],
+                                            "buyer": request.form["buyer"]}})
             if dbResponse.modified_count == 0:
                 return Response(
                     response=json.dumps({"message": "No updates made on : " + id}),
@@ -210,6 +219,169 @@ def delete_game(id):
                                 status=500,
                                 mimetype="application/json"
                  )
+
+@app.route("/api/v2/games/<id>/buyer", methods=["GET"])
+def get_game_buyer(id):
+    game = db.games.find_one({'_id': ObjectId(id)})
+    try:
+        if game is None:
+            return Response(
+                json.dumps({"Error": "No such id for a game exists"}),
+                status=404,
+                mimetype="application/json",
+            )
+        buyer_id = game.get("buyer_id")
+        print(buyer_id)
+        if buyer_id:
+            api_url = get_api_url()
+            api_url = api_url + str(buyer_id)
+            response = requests.get(api_url)
+
+            return Response(
+                response.text,
+                status=response.status_code,
+                mimetype="application/json",
+            )
+        else:
+            return Response(
+                json.dumps({"Error": "This game has no buyer"}),
+                status=404,
+                mimetype="application/json",
+            )
+    except Exception as ex:
+        print(ex)
+        return Response(
+            json.dumps({"Error": "Cannot get game buyer " + str(ex)}),
+            status= 500,
+            mimetypes="application/json")
+
+
+@app.route("/api/v2/games/<id>/buyer", methods=["POST"])
+def add_game_buyer(id):
+    game = db.games.find_one({'_id': ObjectId(id)})
+    buyer_id = request.form["buyer_id"]
+    print(buyer_id)
+
+    print("game: ", game)
+    try:
+        if game is None:
+            return Response(
+                json.dumps({"Error": "No game with this id exists"}),
+                status=404,
+                mimetype="application/json",
+            )
+        #print(buyer_id)
+        if game["buyer_id"] != "":
+            return Response(
+                json.dumps({"Error": "Game already has a buyer!"}),
+                status=404,
+                mimetype="application/json",
+            )
+        else:
+            api_url = get_api_url()
+            api_url = api_url + str(buyer_id)
+            response = requests.get(api_url)
+            print(response.status_code)
+            if response.status_code == 200:
+                    db.games.update_one({"_id": ObjectId(id)},{"$set": {"buyer_id": buyer_id}})
+                    return Response(
+                            json.dumps({"Success": "Game buyer added successfully"}),
+                            status=200,
+                            mimetype="application/json",
+                      headers={"Location": '/games/{}'.format(id) + "/buyer"}
+                            )
+            else:
+                return Response(
+                            json.dumps({"Error" : "Could not find a buyer with this id"}),
+                            status=404,
+                            mimetype="application/json",
+                            )
+    except Exception as ex:
+        print(ex)
+        return Response(
+            json.dumps({"Error": "Encountered an error: " + str(ex)}),
+            status = 500,
+            mimetypes="application/json")
+
+
+@app.route("/api/v2/games/<id>/buyer", methods=["DELETE"])
+def del_game_buyer(id):
+    game = db.games.find_one({'_id': ObjectId(id)})
+    try:
+        if game is None:
+            return Response(
+                json.dumps({"Error": "No game with this id exists"}),
+                status=404,
+                mimetype="application/json",
+            )
+        #print(buyer_id)
+        if game["buyer_id"] != "":
+            db.games.update_one({"_id": ObjectId(id)}, {"$set": {"buyer_id": ""}})
+            return Response(
+                json.dumps({"Success": "Game buyer deleted successfully"}),
+                status=200,
+                mimetype="application/json",
+                headers={"Location": '/games/{}'.format(id) + "/buyer"}
+            )
+        else:
+            print(":: No buyer to delete")
+            return Response(
+                            json.dumps({"Error": "Game doesnt have a buyer to delete!"}),
+                            status=404,
+                            mimetype="application/json"
+                            )
+    except Exception as ex:
+        print(ex)
+        return Response(
+            json.dumps({"Error": "Encountered an error: " + str(ex)}),
+            status= 500,
+            mimetypes="application/json")
+
+
+@app.route("/api/v2/games/<id>/buyer", methods=["PATCH"])
+def update_game_buyer(id):
+    game = db.games.find_one({'_id': ObjectId(id)})
+    buyer_id = request.form["buyer_id"]
+    try:
+        if game is None:
+            return Response(
+                json.dumps({"Error": "No game with this id exists"}),
+                status=404,
+                mimetype="application/json",
+            )
+        #print(buyer_id)
+        if game["buyer_id"] != "":
+            api_url = get_api_url()
+            api_url = api_url + str(buyer_id)
+            response = requests.get(api_url)
+            if response.status_code == 200:
+                db.games.update_one({"_id": ObjectId(id)}, {"$set": {"buyer_id": buyer_id}})
+                return Response(
+                    json.dumps({"Success": "Game buyer updated successfully"}),
+                    status=200,
+                    mimetype="application/json",
+                    headers={"Location": '/games/{}'.format(id) + "/buyer"}
+                )
+            else:
+                return Response(
+                    json.dumps({"Error": "Could not find a buyer with this id"}),
+                    status=404,
+                    mimetype="application/json",
+                )
+        else:
+                return Response(
+                    json.dumps({"Error": "Nothing to update!"}),
+                    status=404,
+                    mimetype="application/json",
+                )
+    except Exception as ex:
+        print(ex)
+        return Response(
+            json.dumps({"Error": "Encountered an error: " + str(ex)}),
+            status = 500,
+            mimetypes="application/json")
+
+
 
 
 if __name__=='__main__':
