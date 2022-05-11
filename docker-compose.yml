@@ -24,7 +24,7 @@ services:
   
   contacts:
     build:
-        context: ./contacts
+        context: ./contacts2
         dockerfile: Dockerfile
     ports:
      - "5000:5000"
