@@ -1,0 +1,3 @@
+[submodule "contacts2"]
+	path = contacts2
+	url = https://github.com/augkik/contacts
