@@ -3,7 +3,7 @@ Simple Game Store web service
 
 ## To launch:
 ```bash
-git clone https://github.com/Jkali8/GameStore-Api
+git clone --recurse-submodules https://github.com/Jkali8/GameStore-Api
 cd GameStore-Api
 docker-compose build
 docker-compose up
