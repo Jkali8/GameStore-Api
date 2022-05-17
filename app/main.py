@@ -21,7 +21,7 @@ try:
     client = MongoClient("mongodb://my_mongo_db:27017")
     g_database_name = "storeDB"
     g_collection_name = "game_collection"
-    #client.drop_database('storeDB')
+    client.drop_database('storeDB')
     db = client.storeDB
     games = db["games"]
     client.server_info()
