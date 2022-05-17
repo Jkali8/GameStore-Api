@@ -8,7 +8,7 @@ import requests.exceptions
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
-api_url = "http://172.20.10.2:5000/contacts/"
+api_url = "http://172.17.0.1:5000/contacts/"
 
 
 def get_api_url():
