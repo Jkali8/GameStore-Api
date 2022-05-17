@@ -4,11 +4,11 @@ from flask import Flask, request, jsonify, json
 from flask import Response
 import json
 import requests
-from jsonschema import validate
+import requests.exceptions
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
-api_url = "http://172.17.0.1:5000/contacts/"
+api_url = "http://172.20.10.2:5000/contacts/"
 
 
 def get_api_url():
@@ -21,7 +21,7 @@ try:
     client = MongoClient("mongodb://my_mongo_db:27017")
     g_database_name = "storeDB"
     g_collection_name = "game_collection"
-    client.drop_database('storeDB')
+    #client.drop_database('storeDB')
     db = client.storeDB
     games = db["games"]
     client.server_info()
@@ -94,18 +94,71 @@ def get_games():
 def get_game(id):
     try:
         dbResponse = db.games.find_one({'_id': ObjectId(id)})
-        #print(data)
-        return Response(
-            response=json.dumps(dbResponse, default=str),
-            status=200,
-            mimetype="application/json"
-        )
+        if dbResponse["buyer_id"] is not None:
+            api_url = get_api_url()
+            api_url = api_url + str(dbResponse["buyer_id"])
+            try:
+                response = requests.get(api_url)
+                response.raise_for_status()
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+                         print("bad")
+                         return Response(
+                             response=json.dumps(dbResponse, default=str),
+                             status=200,
+                             mimetype="application/json"
+                         )
+            except requests.exceptions.HTTPError:
+                         print("bad2")
+                         return Response(
+                             response=json.dumps(dbResponse, default=str),
+                             status=200,
+                             mimetype="application/json"
+                         )
+            else:
+                            if  response.status_code == 200:
+                                converterJs = json.loads(response.text)
+                                response2 = {
+                                    "_id": dbResponse['_id'],
+                                    "title": dbResponse['title'],
+                                    "releaseYear": dbResponse['releaseYear'],
+                                    "genre": dbResponse['genre'],
+                                    "price": dbResponse['price'],
+                                    "length": dbResponse['length'],
+                                    "buyer": [
+                                        {
+                                            "id": converterJs['id'],
+                                            "surname": converterJs['surname'],
+                                            "name": converterJs['name'],
+                                            "number": converterJs['number'],
+                                            "email": converterJs['email']
+                                        }
+                                    ]
+                                }
+                                return Response(
+                                    response=json.dumps(response2, default=str),
+                                    status=200,
+                                    mimetype="application/json"
+                                )
+                            else:
+                                print(response.status_code)
+                                return Response(
+                                    response=json.dumps(dbResponse, default=str),
+                                    status=200,
+                                    mimetype="application/json"
+                                )
+        else:
+            return Response(
+                response=json.dumps(dbResponse, default=str),
+                status=200,
+                mimetype="application/json"
+            )
+
     except Exception as ex:
         print(ex)
         return Response(
             response=json.dumps({"message": "Cannot retrieve game",
                                  "error": str(ex)}),
-            status=500,
+                status=500,
             mimetype="application/json"
         )
 
@@ -383,6 +436,57 @@ def update_game_buyer(id):
             mimetypes="application/json")
 
 
+@app.route("/api/v2/games/buyer", methods=["POST"])
+def add_contact():
+    try:
+        contact = {"id": request.form["id"],
+                "surname": request.form["surname"],
+                "name": request.form["name"],
+                "number": request.form["number"],
+                "email": request.form["email"],
+                }
+        print(contact)
+        jsonify(contact)
+        print(contact)
+        response2 = requests.post(api_url, json = contact)
+        response2.text
+        return Response(
+                response2.text,
+                  status=200,
+                  mimetype="application/json",
+               )
+
+
+    except Exception as ex:
+        print(ex)
+
+        return Response(
+            response=json.dumps({"message": "Adding the contact failed",
+                                 "error": str(ex)}),
+            status=500,
+            mimetype="application/json"
+        )
+
+
+@app.route("/api/v2/games/buyer", methods=["GET"])
+def get_contacts():
+    try:
+              response = requests.get(api_url)
+              response = response.text
+              return Response(
+                    response,
+                    status=200,
+                    mimetype="application/json",
+                )
+
+    except Exception as ex:
+        print(ex)
+        return Response(
+            response=json.dumps({"message": "Server is down",
+                                 "error": str(ex)}),
+            status=404,
+            mimetype="application/json"
+        )
 
 
 if __name__=='__main__':
